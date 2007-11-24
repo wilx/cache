@@ -1,10 +1,11 @@
 //! This file implements a LRU cache template class.
 
-#if ! defined (VPVIEWER_NAVIDBSERVER_CACHE_H)
-#define VPVIEWER_NAVIDBSERVER_CACHE_H
+#if ! defined (LRU_CACHE_H)
+#define LRU_CACHE_H
 
 #include <map>
 #include <utility>
+#include <boost/call_traits.hpp>
 
 
 //! LRU cache.
@@ -15,15 +16,23 @@ public:
     typedef CacheKey key_type;
     typedef CacheValue value_type;
 
+    typedef typename boost::call_traits<key_type>::param_type
+        key_param_type;
+    typedef typename boost::call_traits<value_type>::param_type
+        value_param_type;
+
     //! \param cap Capacity of the cache.
     Cache (size_t cap = 3)
         : last_age (0), capacity (cap), hits (0), misses (0)
     { }
 
-    bool get (CacheKey const &, CacheValue *) const;
-    void insert (CacheKey const &, CacheValue const &);
+    bool get (key_param_type, value_type *) const;
+    void insert (key_param_type, value_param_type);
     void clear ();
     void set_capacity (size_t);
+    size_t get_capacity () const;
+
+    std::pair<unsigned long, unsigned long> get_stats () const;
 
 private:
     void trim_to_capacity ();
@@ -31,13 +40,12 @@ private:
     //! The type of cache's/items' age.
     typedef unsigned long age_type;
 
-    typedef std::map<CacheKey,
-        std::pair<CacheValue, age_type> > cache_type;
+    typedef std::map<key_type, std::pair<value_type, age_type> > cache_type;
     //! \c CacheKey -> (\c CacheValue, age).
     mutable cache_type cache;
 
     //! \c Age -> \c CacheKey mapping.
-    mutable std::map<age_type, CacheKey> ages;
+    mutable std::map<age_type, key_type> ages;
 
     //! Last age.
     mutable age_type last_age;
@@ -55,12 +63,12 @@ private:
 // \param value Pointer to variable that we store the value.
 // \returns True if the key is in the cache, otherwise false.
 template <typename CacheKey, typename CacheValue>
+inline
 bool
-Cache<CacheKey, CacheValue>::get (CacheKey const & key, 
-                                  CacheValue * value) const
+Cache<CacheKey, CacheValue>::get (key_param_type key, 
+                                  value_type * value) const
 {
-    //CacheValue value;
-    cache_type::iterator it = cache.find (key);
+    typename cache_type::iterator it = cache.find (key);
     if (it != cache.end ())
     {
         *value = it->second.first;
@@ -94,9 +102,10 @@ Cache<CacheKey, CacheValue>::get (CacheKey const & key,
 // \param key Key.
 // \param value Value associated with the key.
 template <typename CacheKey, typename CacheValue>
+inline
 void
-Cache<CacheKey, CacheValue>::insert (CacheKey const & key, 
-                                     CacheValue const & value)
+Cache<CacheKey, CacheValue>::insert (key_param_type key, 
+                                     value_param_type value)
 {
     age_type new_last_age = last_age + 1;
     if (new_last_age < last_age)
@@ -106,7 +115,7 @@ Cache<CacheKey, CacheValue>::insert (CacheKey const & key,
     }
     last_age = new_last_age;
 
-    cache_type::iterator it = cache.find (key);
+    typename cache_type::iterator it = cache.find (key);
     // Insert new element if it does not exist in cache.
     if (it == cache.end ())
     {
@@ -129,6 +138,7 @@ Cache<CacheKey, CacheValue>::insert (CacheKey const & key,
 
 //! Empties the cache.
 template <typename CacheKey, typename CacheValue>
+inline
 void
 Cache<CacheKey, CacheValue>::clear ()
 {
@@ -142,6 +152,7 @@ Cache<CacheKey, CacheValue>::clear ()
 // smaller than previous value.
 // \param new_cap New capacity of the cache.
 template <typename CacheKey, typename CacheValue>
+inline
 void
 Cache<CacheKey, CacheValue>::set_capacity (size_t new_cap)
 {
@@ -150,15 +161,26 @@ Cache<CacheKey, CacheValue>::set_capacity (size_t new_cap)
 }
 
 
+//! Returns maximum size of the cache.
+template <typename CacheKey, typename CacheValue>
+inline
+size_t 
+Cache<CacheKey, CacheValue>::get_capacity () const
+{
+    return capacity;
+}
+
+
 //! Removes the oldest items in cache if the number of items in the cace
 // is bigger than its capacity.
 template <typename CacheKey, typename CacheValue>
+inline
 void
 Cache<CacheKey, CacheValue>::trim_to_capacity ()
 {
     while (cache.size () > capacity)
     {
-        std::map<age_type, CacheKey>::iterator ages_it
+        typename std::map<age_type, key_type>::iterator ages_it
             = ages.begin ();
         cache.erase (ages_it->second);
         ages.erase (ages_it);
@@ -166,4 +188,14 @@ Cache<CacheKey, CacheValue>::trim_to_capacity ()
 }
 
 
-#endif // VPVIEWER_NAVIDBSERVER_CACHE_H
+//! Returns hits and misses statistics. Hits are first, misses are second.
+template <typename CacheKey, typename CacheValue>
+inline
+std::pair<unsigned long, unsigned long>
+Cache<CacheKey, CacheValue>::get_stats () const
+{
+    return std::make_pair (hits, misses);
+}
+
+
+#endif // LRU_CACHE_H
