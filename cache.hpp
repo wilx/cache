@@ -6,10 +6,12 @@
 #include <map>
 #include <utility>
 #include <boost/call_traits.hpp>
+#include <memory>
 
 
 //! LRU cache.
-template <typename CacheKey, typename CacheValue>
+template <typename CacheKey, typename CacheValue, 
+    template <typename T> class Allocator = std::allocator >
 class Cache
 {
 public:
@@ -62,11 +64,12 @@ private:
 // \param key Key.
 // \param value Pointer to variable that we store the value.
 // \returns True if the key is in the cache, otherwise false.
-template <typename CacheKey, typename CacheValue>
+template <typename CacheKey, typename CacheValue, 
+    template <typename> class Allocator>
 inline
 bool
-Cache<CacheKey, CacheValue>::get (key_param_type key, 
-                                  value_type * value) const
+Cache<CacheKey, CacheValue, Allocator>::get (key_param_type key, 
+    value_type * value) const
 {
     typename cache_type::iterator it = cache.find (key);
     if (it != cache.end ())
@@ -101,11 +104,12 @@ Cache<CacheKey, CacheValue>::get (key_param_type key,
 //! Inserts an element into the cache.
 // \param key Key.
 // \param value Value associated with the key.
-template <typename CacheKey, typename CacheValue>
+template <typename CacheKey, typename CacheValue,
+    template <typename> class Allocator>
 inline
 void
-Cache<CacheKey, CacheValue>::insert (key_param_type key, 
-                                     value_param_type value)
+Cache<CacheKey, CacheValue, Allocator>::insert (key_param_type key, 
+    value_param_type value)
 {
     age_type new_last_age = last_age + 1;
     if (new_last_age < last_age)
@@ -137,10 +141,11 @@ Cache<CacheKey, CacheValue>::insert (key_param_type key,
 
 
 //! Empties the cache.
-template <typename CacheKey, typename CacheValue>
+template <typename CacheKey, typename CacheValue, 
+    template <typename> class Allocator>
 inline
 void
-Cache<CacheKey, CacheValue>::clear ()
+Cache<CacheKey, CacheValue, Allocator>::clear ()
 {
     cache.clear ();
     ages.clear ();
@@ -151,10 +156,11 @@ Cache<CacheKey, CacheValue>::clear ()
 //! Sets capacity of the cache and also trims the cache if the \c new_cap is
 // smaller than previous value.
 // \param new_cap New capacity of the cache.
-template <typename CacheKey, typename CacheValue>
+template <typename CacheKey, typename CacheValue,
+    template <typename> class Allocator>
 inline
 void
-Cache<CacheKey, CacheValue>::set_capacity (size_t new_cap)
+Cache<CacheKey, CacheValue, Allocator>::set_capacity (size_t new_cap)
 {
     capacity = new_cap;
     trim_to_capacity ();
@@ -162,10 +168,11 @@ Cache<CacheKey, CacheValue>::set_capacity (size_t new_cap)
 
 
 //! Returns maximum size of the cache.
-template <typename CacheKey, typename CacheValue>
+template <typename CacheKey, typename CacheValue,
+    template <typename> class Allocator>
 inline
 size_t 
-Cache<CacheKey, CacheValue>::get_capacity () const
+Cache<CacheKey, CacheValue, Allocator>::get_capacity () const
 {
     return capacity;
 }
@@ -173,10 +180,11 @@ Cache<CacheKey, CacheValue>::get_capacity () const
 
 //! Removes the oldest items in cache if the number of items in the cace
 // is bigger than its capacity.
-template <typename CacheKey, typename CacheValue>
+template <typename CacheKey, typename CacheValue,
+    template <typename> class Allocator>
 inline
 void
-Cache<CacheKey, CacheValue>::trim_to_capacity ()
+Cache<CacheKey, CacheValue, Allocator>::trim_to_capacity ()
 {
     while (cache.size () > capacity)
     {
@@ -189,10 +197,11 @@ Cache<CacheKey, CacheValue>::trim_to_capacity ()
 
 
 //! Returns hits and misses statistics. Hits are first, misses are second.
-template <typename CacheKey, typename CacheValue>
+template <typename CacheKey, typename CacheValue,
+    template <typename> class Allocator>
 inline
 std::pair<unsigned long, unsigned long>
-Cache<CacheKey, CacheValue>::get_stats () const
+Cache<CacheKey, CacheValue, Allocator>::get_stats () const
 {
     return std::make_pair (hits, misses);
 }
