@@ -7,6 +7,7 @@
 #include <utility>
 #include <boost/call_traits.hpp>
 #include <memory>
+#include <functional>
 
 
 //! LRU cache.
@@ -42,12 +43,24 @@ private:
     //! The type of cache's/items' age.
     typedef unsigned long age_type;
 
-    typedef std::map<key_type, std::pair<value_type, age_type> > cache_type;
+    //! Allocator for \c cache associative container.
+    typedef Allocator<std::pair<const key_type, std::pair<value_type, age_type>
+			  > > cache_allocator_type;
+
+    //! The type of associative container for 
+    // \c CacheKey -> (\c CacheValue, age) map.
+    typedef std::map<key_type, std::pair<value_type, age_type>, 
+	std::less<key_type>,  cache_allocator_type> cache_type;
+
     //! \c CacheKey -> (\c CacheValue, age).
     mutable cache_type cache;
 
+    //! Allocator for the \c ages associative container.
+    typedef Allocator<std::pair<const age_type, key_type> > ages_allocator_type;
+
     //! \c Age -> \c CacheKey mapping.
-    mutable std::map<age_type, key_type> ages;
+    mutable std::map<age_type, key_type, std::less<age_type>,
+	ages_allocator_type> ages;
 
     //! Last age.
     mutable age_type last_age;
